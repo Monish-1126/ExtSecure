@@ -1,26 +1,29 @@
 package com.example.extsecure.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.example.extsecure.api.AnalyzeResponse
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.FlowRow
 import com.example.extsecure.ui.components.RiskBadge
 import com.example.extsecure.ui.components.riskColor
-import com.example.extsecure.ui.theme.BgDark
-import com.example.extsecure.ui.theme.CardBg
 import com.example.extsecure.viewmodel.ScanUiState
 import com.example.extsecure.viewmodel.ScanViewModel
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.Brush
 
 @Composable
 fun HomeScreen(viewModel: ScanViewModel) {
@@ -33,9 +36,17 @@ fun HomeScreen(viewModel: ScanViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0E0F12))
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(28.dp)
+            .verticalScroll(rememberScrollState())
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0E0F12),
+                        Color(0xFF12141A)
+                    )
+                )
+            )
+            .padding(horizontal = 24.dp, vertical = 40.dp),
+        verticalArrangement = Arrangement.spacedBy(36.dp)
     ) {
 
         // Header
@@ -83,7 +94,14 @@ fun HomeScreen(viewModel: ScanViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(14.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF8E7CFF)
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 2.dp
+                    )
                 ) {
                     if (uiState is ScanUiState.Loading) {
                         CircularProgressIndicator(
@@ -107,7 +125,7 @@ fun HomeScreen(viewModel: ScanViewModel) {
         // Result Section
         if (uiState is ScanUiState.Success) {
             val result = (uiState as ScanUiState.Success).response
-            PremiumResultCard(result.extension_id, result.riskScore, result.riskLevel)
+            PremiumResultCard(result)
         }
 
         if (uiState is ScanUiState.Error) {
@@ -118,54 +136,113 @@ fun HomeScreen(viewModel: ScanViewModel) {
         }
     }
 }
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PremiumResultCard(extensionId: String, riskScore: Float, riskLevel: String) {
+fun PremiumResultCard(response: AnalyzeResponse) {
 
-    val color = riskColor(riskLevel)
-    val animatedProgress by animateFloatAsState(targetValue = riskScore)
+    val color = riskColor(response.riskLevel)
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = response.riskScore,
+        animationSpec = tween(800)
+    )
 
     Card(
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1C22)),
-        elevation = CardDefaults.cardElevation(10.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1A1C22)
+        ),
+        elevation = CardDefaults.cardElevation(12.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .padding(28.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 
-            Text(
-                "Risk Assessment",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
+            // ───────── Extension Info ─────────
+            Column {
+                Text(
+                    text = response.extensionName,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
 
-            // Circular Risk Indicator
-            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = "v${response.version}",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(Modifier.height(6.dp))
+
+                Text(
+                    text = response.description,
+                    fontSize = 13.sp,
+                    color = Color(0xFFBDBDBD)
+                )
+            }
+
+            Divider(color = Color.DarkGray)
+
+            // ───────── Risk Meter ─────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator(
                     progress = animatedProgress,
                     strokeWidth = 10.dp,
                     color = color,
-                    modifier = Modifier.size(140.dp)
+                    modifier = Modifier.size(120.dp)
                 )
+
                 Text(
-                    "${(riskScore * 100).toInt()}%",
+                    text = "${(response.riskScore * 100).toInt()}%",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = color
                 )
             }
 
-            RiskBadge(level = riskLevel)
+            RiskBadge(level = response.riskLevel)
 
+            Divider(color = Color.DarkGray)
+
+            // ───────── Permissions ─────────
             Text(
-                extensionId,
+                text = "Permissions",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                (response.permissions ?: emptyList()).forEach { permission ->
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(permission, fontSize = 11.sp) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color(0xFF2A2D36),
+                            labelColor = Color.LightGray
+                        )
+                    )
+                }
+            }
+
+            // Optional subtle ID display
+            Text(
+                text = response.extensionId,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
-                color = Color.Gray
+                fontSize = 11.sp,
+                color = Color.DarkGray
             )
         }
     }

@@ -15,8 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.*
 import com.example.extsecure.broadcast.NetworkUtil
+import com.example.extsecure.ui.screens.DetailScreen
 import com.example.extsecure.ui.screens.HomeScreen
 import com.example.extsecure.ui.screens.HistoryScreen
+import com.example.extsecure.ui.screens.ScanScreen
 import com.example.extsecure.ui.theme.ExtSecureTheme
 import com.example.extsecure.viewmodel.ScanViewModel
 
@@ -64,10 +66,14 @@ class MainActivity : ComponentActivity() {
                         modifier = androidx.compose.ui.Modifier.padding(padding)
                     ) {
                         composable("home") {
-                            HomeScreen(viewModel)
+                            ScanScreen(viewModel, navController)
                         }
                         composable("history") {
-                            HistoryScreen(viewModel)
+                            HistoryScreen(viewModel, navController)
+                        }
+                        composable("detail/{id}") { backStackEntry ->
+                            val id = backStackEntry.arguments?.getString("id") ?: ""
+                            DetailScreen(id, viewModel)
                         }
                     }
                 }

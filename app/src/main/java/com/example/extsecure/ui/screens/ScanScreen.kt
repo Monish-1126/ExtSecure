@@ -1,11 +1,13 @@
 package com.example.extsecure.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,6 +26,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.example.extsecure.api.AnalyzeResponse
 import com.example.extsecure.database.ScanEntity
 import com.example.extsecure.ui.components.RiskBadge
 import com.example.extsecure.ui.components.riskColor
@@ -34,7 +38,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun ScanScreen(scanViewModel: ScanViewModel = viewModel()) {
+fun ScanScreen(
+    scanViewModel: ScanViewModel,
+    navController: NavController
+) {
 
     val uiState by scanViewModel.uiState.collectAsState()
     val isNetworkAvailable by scanViewModel.isNetworkAvailable.collectAsState()
@@ -176,50 +183,14 @@ fun ScanScreen(scanViewModel: ScanViewModel = viewModel()) {
                 item {
                     val result = (uiState as ScanUiState.Success).response
                     ResultCard(
-                        extensionId = result.extension_id,
+                        extensionId = result.extensionId,
                         riskScore   = result.riskScore,
                         riskLevel   = result.riskLevel
                     )
                 }
             }
 
-            // ── History ───────────────────────────────────────────────────────
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Scan History",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    TextButton(onClick = { scanViewModel.clearHistory() }) {
-                        Text("Clear All", color = Color.Gray, fontSize = 12.sp)
-                    }
-                }
-            }
 
-            if (history.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("No scans yet", color = Color.Gray, fontSize = 14.sp)
-                    }
-                }
-            } else {
-                items(history, key = { it.id }) { scan ->
-                    HistoryItem(scan)
-                }
-            }
-
-            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }
@@ -269,47 +240,64 @@ private fun ResultCard(extensionId: String, riskScore: Float, riskLevel: String)
 
 // ── History Row ───────────────────────────────────────────────────────────────
 @Composable
-private fun HistoryItem(scan: ScanEntity) {
+private fun HistoryItem(
+    scan: ScanEntity,
+    onClick: () -> Unit
+) {
     val color = riskColor(scan.riskLevel)
-    val dateStr = remember(scan.timestamp) {
-        SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date(scan.timestamp))
-    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceBg),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1A1C22)
+        ),
+        border = BorderStroke(1.5.dp, color),
+        elevation = CardDefaults.cardElevation(8.dp),
+        onClick = onClick
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left color strip
+
+            // Left Accent Circle
             Box(
                 modifier = Modifier
-                    .width(4.dp)
-                    .height(44.dp)
-                    .background(color, RoundedCornerShape(2.dp))
+                    .size(14.dp)
+                    .background(color, CircleShape)
             )
-            Spacer(Modifier.width(12.dp))
+
+            Spacer(Modifier.width(14.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = scan.extension_id,
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
                     color = Color.White,
                     maxLines = 1
                 )
-                Text(text = dateStr, fontSize = 11.sp, color = Color.Gray)
-            }
-            Column(horizontalAlignment = Alignment.End) {
+
+                Spacer(Modifier.height(4.dp))
+
                 Text(
-                    text = "${"%.1f".format(scan.riskScore * 100)}%",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    text = scan.riskLevel,
+                    fontSize = 12.sp,
+                    color = color
                 )
-                RiskBadge(level = scan.riskLevel)
             }
+
+            Text(
+                text = "${"%.0f".format(scan.riskScore * 100)}%",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
         }
     }
 }
