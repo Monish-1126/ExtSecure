@@ -83,7 +83,7 @@ fun ScanScreen(scanViewModel: ScanViewModel = viewModel()) {
                     color = Color.White
                 )
                 Text(
-                    text = "Analyze Chrome extensions for malicious behavior",
+                    text = "Analyze Chrome extensions for Malicious behavior",
                     fontSize = 13.sp,
                     color = Color.Gray,
                     modifier = Modifier.padding(top = 2.dp)
