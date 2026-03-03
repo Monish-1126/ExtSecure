@@ -37,33 +37,33 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun analyzeExtension(extensionId: String) {
+
         if (extensionId.isBlank()) {
             _uiState.value = ScanUiState.Error("Extension ID cannot be empty")
-            return
-        }
-        if (!_isNetworkAvailable.value) {
-            _uiState.value = ScanUiState.Error("No network connection")
             return
         }
 
         _uiState.value = ScanUiState.Loading
 
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = try {
+            try {
                 val response = RetrofitClient.apiService
                     .analyzeExtension(AnalyzeRequest(extensionId))
 
                 dao.insertScan(
                     ScanEntity(
                         extension_id = response.extension_id,
-                        riskScore   = response.riskScore,
-                        riskLevel   = response.riskLevel
+                        riskScore = response.riskScore,
+                        riskLevel = response.riskLevel
                     )
                 )
-                ScanUiState.Success(response)
+
+                _uiState.value = ScanUiState.Success(response)
 
             } catch (e: Exception) {
-                ScanUiState.Error(e.localizedMessage ?: "Unknown error")
+                e.printStackTrace()
+                _uiState.value =
+                    ScanUiState.Error(e.localizedMessage ?: "Network error")
             }
         }
     }

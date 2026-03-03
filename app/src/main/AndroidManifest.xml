@@ -25,7 +25,7 @@
             android:exported="false" />
 
         <receiver
-            android:name=".broadcast.NetworkReceiver"
+            android:name=".broadcast.NetworkUtil"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
