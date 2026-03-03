@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     // 🔧 Replace with your FastAPI server address
-    private const val BASE_URL = "http://10.90.91.89:8000/"
+    private const val BASE_URL = "http://10.90.91.81:8000/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
