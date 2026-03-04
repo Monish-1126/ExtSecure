@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontFamily
@@ -45,259 +46,167 @@ fun ScanScreen(
 
     val uiState by scanViewModel.uiState.collectAsState()
     val isNetworkAvailable by scanViewModel.isNetworkAvailable.collectAsState()
-    val history by scanViewModel.scanHistory.observeAsState(emptyList())
 
     var extensionId by remember { mutableStateOf("") }
-    val keyboard = LocalSoftwareKeyboardController.current
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgDark)
+            .background(BgDark),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        contentPadding = PaddingValues(24.dp)
     ) {
-        // ── Network Banner ───────────────────────────────────────────────────
-        AnimatedVisibility(visible = !isNetworkAvailable) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(RiskCritical)
-                    .padding(10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⚠  No network connection",
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp
-                )
-            }
-        }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item { Spacer(Modifier.height(16.dp)) }
+        // TITLE
+        item {
+            Column {
 
-            // ── Header ────────────────────────────────────────────────────────
-            item {
                 Text(
-                    text = "🔍 Extension Scanner",
-                    fontSize = 24.sp,
+                    text = "ExtSecure",
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
+
                 Text(
-                    text = "Analyze Chrome extensions for Malicious behavior",
-                    fontSize = 13.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(top = 2.dp)
+                    text = "Analyze Chrome extensions for malicious behavior",
+                    fontSize = 14.sp,
+                    color = Color.Gray
                 )
             }
-
-            // ── Input Card ────────────────────────────────────────────────────
+        }
+        // NETWORK WARNING
+        if (!isNetworkAvailable) {
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardBg),
-                    elevation = CardDefaults.cardElevation(6.dp)
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF3B0D0D)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
+
+                    Text(
+                        text = "⚠ No internet connection",
+                        color = Color.White,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+        }
+
+        // INPUT CARD
+        item{
+        Card(
+            colors = CardDefaults.cardColors(containerColor = CardBg),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+
+                OutlinedTextField(
+                    value = extensionId,
+                    onValueChange = { extensionId = it },
+                    label = { Text("Extension ID") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentPurple,
+                        unfocusedBorderColor = Color.Gray
+                    )
+                )
+
+                Button(
+                    onClick = {
+                        scanViewModel.analyzeExtension(extensionId.trim())
+                    },
+                    enabled = isNetworkAvailable,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentPurple)
+                ) {
+
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text("Analyze Extension")
+                }
+            }
+        }
+            }
+
+        // RESULT CARD
+        if (uiState is ScanUiState.Success) {
+
+            val result = (uiState as ScanUiState.Success).response
+            val riskColor = riskColor(result.riskLevel)
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = CardBg),
+                    shape = RoundedCornerShape(22.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier.padding(22.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        OutlinedTextField(
-                            value = extensionId,
-                            onValueChange = {
-                                extensionId = it
-                                if (uiState is ScanUiState.Error) scanViewModel.resetState()
-                            },
-                            label = { Text("Extension ID") },
-                            placeholder = {
-                                Text(
-                                    "e.g. aapbdbdomjkkjkaonfhkkikfgjllcleb",
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 12.sp
-                                )
-                            },
-                            textStyle = LocalTextStyle.current.copy(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 13.sp
-                            ),
-                            singleLine = true,
-                            isError = uiState is ScanUiState.Error,
-                            supportingText = {
-                                if (uiState is ScanUiState.Error) {
-                                    Text(
-                                        text = (uiState as ScanUiState.Error).message,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            },
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(onSearch = {
-                                keyboard?.hide()
-                                scanViewModel.analyzeExtension(extensionId.trim())
-                            }),
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Purple80,
-                                unfocusedBorderColor = Color.Gray
-                            )
+
+                        Text(
+                            result.extensionName,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
 
-                        Button(
-                            onClick = {
-                                keyboard?.hide()
-                                scanViewModel.analyzeExtension(extensionId.trim())
-                            },
-                            enabled = isNetworkAvailable && uiState !is ScanUiState.Loading,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            shape = RoundedCornerShape(10.dp)
+                        Text(
+                            "Version ${result.version}",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+
+                        Text(
+                            result.description,
+                            fontSize = 13.sp,
+                            color = Color.LightGray
+                        )
+
+                        Divider(color = Color.DarkGray)
+
+                        Text(
+                            "Risk Score",
+                            color = Color.Gray
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (uiState is ScanUiState.Loading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text("Analyzing…")
-                            } else {
-                                Icon(Icons.Default.Search, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Analyze Extension", fontWeight = FontWeight.SemiBold)
-                            }
+
+                            Text(
+                                text = "${(result.riskScore * 100).toInt()}%",
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = riskColor
+                            )
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            RiskBadge(level = result.riskLevel)
                         }
                     }
                 }
             }
-
-            // ── Result Card ───────────────────────────────────────────────────
-            if (uiState is ScanUiState.Success) {
-                item {
-                    val result = (uiState as ScanUiState.Success).response
-                    ResultCard(
-                        extensionId = result.extensionId,
-                        riskScore   = result.riskScore,
-                        riskLevel   = result.riskLevel
-                    )
-                }
-            }
-
-
         }
-    }
-}
 
-// ── Result Card ───────────────────────────────────────────────────────────────
-@Composable
-private fun ResultCard(extensionId: String, riskScore: Float, riskLevel: String) {
-    val color = riskColor(riskLevel)
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(2.dp, color, RoundedCornerShape(14.dp)),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        elevation = CardDefaults.cardElevation(6.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = extensionId,
-                fontSize = 12.sp,
-                fontFamily = FontFamily.Monospace,
-                color = Color.LightGray
+        if (uiState is ScanUiState.Loading) {
+            item{
+            CircularProgressIndicator(
+                modifier = Modifier.size(40.dp),
+                color = AccentPurple
             )
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Column {
-                    Text(text = "Risk Score", fontSize = 12.sp, color = Color.Gray)
-                    Text(
-                        text = "${"%.1f".format(riskScore * 100)}%",
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = color
-                    )
-                }
-                RiskBadge(
-                    level = riskLevel,
-                    modifier = Modifier.padding(bottom = 6.dp)
-                )
-            }
-        }
-    }
-}
-
-// ── History Row ───────────────────────────────────────────────────────────────
-@Composable
-private fun HistoryItem(
-    scan: ScanEntity,
-    onClick: () -> Unit
-) {
-    val color = riskColor(scan.riskLevel)
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1A1C22)
-        ),
-        border = BorderStroke(1.5.dp, color),
-        elevation = CardDefaults.cardElevation(8.dp),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            // Left Accent Circle
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .background(color, CircleShape)
-            )
-
-            Spacer(Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = scan.extension_id,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White,
-                    maxLines = 1
-                )
-
-                Spacer(Modifier.height(4.dp))
-
-                Text(
-                    text = scan.riskLevel,
-                    fontSize = 12.sp,
-                    color = color
-                )
-            }
-
-            Text(
-                text = "${"%.0f".format(scan.riskScore * 100)}%",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
+              }
         }
     }
 }

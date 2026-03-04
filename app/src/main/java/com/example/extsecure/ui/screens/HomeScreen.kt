@@ -24,6 +24,7 @@ import com.example.extsecure.ui.components.riskColor
 import com.example.extsecure.viewmodel.ScanUiState
 import com.example.extsecure.viewmodel.ScanViewModel
 import androidx.compose.ui.graphics.Brush
+import com.example.extsecure.ui.theme.CardBg
 
 @Composable
 fun HomeScreen(viewModel: ScanViewModel) {
@@ -63,7 +64,22 @@ fun HomeScreen(viewModel: ScanViewModel) {
                 color = Color.Gray
             )
         }
+        if (!isNetworkAvailable) {
 
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF3B0D0D)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+
+                Text(
+                    text = "⚠ No internet connection",
+                    color = Color.White,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
         // Input Card
         Card(
             shape = RoundedCornerShape(20.dp),
@@ -88,9 +104,8 @@ fun HomeScreen(viewModel: ScanViewModel) {
                 Spacer(Modifier.height(20.dp))
 
                 Button(
-                    onClick = {
-                        viewModel.analyzeExtension(extensionId.trim())
-                    },
+                    onClick = { viewModel.analyzeExtension(extensionId.trim()) },
+                    enabled = isNetworkAvailable && uiState !is ScanUiState.Loading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -124,8 +139,57 @@ fun HomeScreen(viewModel: ScanViewModel) {
 
         // Result Section
         if (uiState is ScanUiState.Success) {
+
             val result = (uiState as ScanUiState.Success).response
-            PremiumResultCard(result)
+
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    Text(
+                        text = result.extensionName,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+
+                    Text(
+                        text = "Version ${result.version}",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+
+                    Text(
+                        text = result.description,
+                        fontSize = 13.sp,
+                        color = Color.LightGray
+                    )
+
+                    Divider(color = Color.DarkGray)
+
+                    Text(
+                        text = "Risk Score",
+                        color = Color.Gray
+                    )
+
+                    Text(
+                        text = "${(result.riskScore * 100).toInt()}%",
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = riskColor(result.riskLevel)
+                    )
+
+                    RiskBadge(level = result.riskLevel)
+
+                }
+            }
         }
 
         if (uiState is ScanUiState.Error) {

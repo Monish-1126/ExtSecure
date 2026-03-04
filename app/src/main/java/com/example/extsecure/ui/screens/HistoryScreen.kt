@@ -2,6 +2,8 @@ package com.example.extsecure.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +23,7 @@ import com.example.extsecure.database.ScanEntity
 import com.example.extsecure.ui.components.RiskBadge
 import com.example.extsecure.ui.components.riskColor
 import com.example.extsecure.ui.theme.BgDark
+import com.example.extsecure.ui.theme.CardBg
 import com.example.extsecure.viewmodel.ScanViewModel
 
 
@@ -48,85 +51,61 @@ fun HistoryScreen(
         Spacer(Modifier.height(20.dp))
 
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(history, key = { it.id }) { scan ->
-                ModernHistoryCard(scan) {
-                    navController.navigate("detail/${scan.extension_id}")
+
+            items(history) { scan ->
+
+                HistoryCard(scan = scan) {
+                    navController.navigate("detail/${scan.extensionId}")
                 }
             }
         }
     }
 }
+
+
 @Composable
-fun ModernHistoryCard(
-    scan: ScanEntity,
-    onClick: () -> Unit
-) {
+fun HistoryCard(scan: ScanEntity, onClick: () -> Unit) {
+
     val color = riskColor(scan.riskLevel)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1A1C22)
-        ),
-        border = BorderStroke(1.5.dp, color),
-        elevation = CardDefaults.cardElevation(10.dp),
-        onClick = onClick
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .border(2.dp, color, RoundedCornerShape(16.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = CardBg),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically
+
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .background(color, CircleShape)
+            Text(
+                text = scan.extensionName,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
-
-            Spacer(Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = scan.extension_id,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White
-                )
-
-                Text(
-                    text = scan.riskLevel,
-                    fontSize = 12.sp,
-                    color = color
-                )
-            }
 
             Text(
-                text = "${"%.0f".format(scan.riskScore * 100)}%",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = color
+                text = "Risk Level: ${scan.riskLevel}",
+                color = riskColor(scan.riskLevel)
             )
-        }
-    }
-}
 
-@Composable
-private fun HistoryCard(scan: ScanEntity) {
-
-    val color = riskColor(scan.riskLevel)
-
-    Card {
-        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text(scan.extension_id, maxLines = 1)
-                Text(scan.riskLevel, color = color)
-            }
-            Text("${(scan.riskScore * 100).toInt()}%")
+            Text(
+                text = "Risk Score: ${(scan.riskScore * 100).toInt()}%",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = riskColor(scan.riskLevel)
+            )
         }
     }
 }

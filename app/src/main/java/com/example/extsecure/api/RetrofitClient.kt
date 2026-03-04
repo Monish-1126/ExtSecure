@@ -9,16 +9,16 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     // 🔧 Replace with your FastAPI server address
-    private const val BASE_URL = "http://10.90.91.91:8000/"
+    private const val BASE_URL = "https://extsecure-api.onrender.com"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
+        .connectTimeout(120, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(120, TimeUnit.SECONDS)
         .build()
 
     val apiService: ApiService by lazy {

@@ -24,13 +24,7 @@
             android:authorities="com.example.extsecure.provider"
             android:exported="false" />
 
-        <receiver
-            android:name=".broadcast.NetworkUtil"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
-            </intent-filter>
-        </receiver>
+        
 
     </application>
 </manifest>

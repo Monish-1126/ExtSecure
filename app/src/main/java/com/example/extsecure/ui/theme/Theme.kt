@@ -5,13 +5,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary   = Purple80,
-    secondary = PurpleGrey80,
-    tertiary  = Pink80,
+    primary = AccentPurple,
+    secondary = AccentPurple,
     background = BgDark,
-    surface    = CardBg,
-    onBackground = Color.White,
-    onSurface    = Color.White
+    surface = CardBg
 )
 
 @Composable

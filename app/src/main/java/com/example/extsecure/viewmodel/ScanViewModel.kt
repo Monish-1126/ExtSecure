@@ -52,9 +52,12 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
                 dao.insertScan(
                     ScanEntity(
-                        extension_id = response.extensionId,
+                        extensionId = response.extensionId,
+                        extensionName = response.extensionName,
                         riskScore = response.riskScore,
-                        riskLevel = response.riskLevel
+                        riskLevel = response.riskLevel,
+                        description = response.description,
+                        version = response.version
                     )
                 )
 

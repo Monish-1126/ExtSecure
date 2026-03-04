@@ -42,7 +42,7 @@ class ScanHistoryProvider : ContentProvider() {
         }
         return MatrixCursor(COLUMNS).apply {
             scans.forEach { scan ->
-                addRow(arrayOf(scan.id, scan.extension_id, scan.riskScore, scan.riskLevel, scan.timestamp))
+                addRow(arrayOf(scan.id, scan.extensionId, scan.riskScore, scan.riskLevel, scan.timestamp))
             }
         }
     }
@@ -50,10 +50,13 @@ class ScanHistoryProvider : ContentProvider() {
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
         values ?: return null
         val entity = ScanEntity(
-            extension_id = values.getAsString("extensionId").orEmpty(),
-            riskScore   = values.getAsFloat("riskScore")   ?: 0f,
-            riskLevel   = values.getAsString("riskLevel").orEmpty(),
-            timestamp   = values.getAsLong("timestamp")    ?: System.currentTimeMillis()
+            extensionId = values.getAsString("extensionId") ?: "",
+            extensionName = values.getAsString("extensionName") ?: "",
+            riskScore = values.getAsFloat("riskScore") ?: 0f,
+            riskLevel = values.getAsString("riskLevel") ?: "",
+            description = values.getAsString("description") ?: "",
+            version = values.getAsString("version") ?: "",
+            timestamp = values.getAsLong("timestamp") ?: System.currentTimeMillis()
         )
         runBlocking { ScanDatabase.getInstance(context!!).scanDao().insertScan(entity) }
         context?.contentResolver?.notifyChange(CONTENT_URI, null)

@@ -36,12 +36,9 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val currentBackStack by navController.currentBackStackEntryAsState()
                 val currentRoute = currentBackStack?.destination?.route
-
-                // Update network state once on launch
-                viewModel.updateNetworkStatus(
-                    NetworkUtil.isNetworkAvailable(this)
-                )
-
+                NetworkUtil.observeNetwork(this) { connected ->
+                    viewModel.updateNetworkStatus(connected)
+                }
                 Scaffold(
                     bottomBar = {
                         NavigationBar {
