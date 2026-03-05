@@ -6,11 +6,11 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "scan_history")
 data class ScanEntity(
 
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
-
+    @PrimaryKey
     val extensionId: String,
+
     val extensionName: String,
+    val permissions: String,
     val riskScore: Float,
     val riskLevel: String,
     val description: String,

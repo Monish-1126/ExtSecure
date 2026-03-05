@@ -138,11 +138,13 @@ fun ScanScreen(
             }
 
         // RESULT CARD
-        if (uiState is ScanUiState.Success) {
+        item {
 
-            val result = (uiState as ScanUiState.Success).response
-            val riskColor = riskColor(result.riskLevel)
-            item {
+            if (uiState is ScanUiState.Success) {
+
+                val result = (uiState as ScanUiState.Success).response
+                val riskColor = riskColor(result.riskLevel)
+
                 Card(
                     colors = CardDefaults.cardColors(containerColor = CardBg),
                     shape = RoundedCornerShape(22.dp),
@@ -175,14 +177,9 @@ fun ScanScreen(
 
                         Divider(color = Color.DarkGray)
 
-                        Text(
-                            "Risk Score",
-                            color = Color.Gray
-                        )
+                        Text("Risk Score", color = Color.Gray)
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
 
                             Text(
                                 text = "${(result.riskScore * 100).toInt()}%",
@@ -200,13 +197,13 @@ fun ScanScreen(
             }
         }
 
-        if (uiState is ScanUiState.Loading) {
-            item{
-            CircularProgressIndicator(
-                modifier = Modifier.size(40.dp),
-                color = AccentPurple
-            )
-              }
+        item {
+            if (uiState is ScanUiState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(40.dp),
+                    color = AccentPurple
+                )
+            }
         }
     }
 }

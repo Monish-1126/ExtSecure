@@ -12,23 +12,27 @@ class ScanHistoryProvider : ContentProvider() {
 
     companion object {
         const val AUTHORITY = "com.example.extsecure.provider"
-        const val PATH      = "scans"
+        const val PATH = "scans"
+
         val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY/$PATH")
-        val COLUMNS = arrayOf("id", "extensionId", "riskScore", "riskLevel", "timestamp")
+
+        val COLUMNS = arrayOf(
+            "extensionId",
+            "extensionName",
+            "permissions",
+            "riskScore",
+            "riskLevel",
+            "description",
+            "version",
+            "timestamp"
+        )
     }
 
     private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
-        addURI(AUTHORITY, PATH,     1)   // all rows
-        addURI(AUTHORITY, "$PATH/#", 2)  // single row
+        addURI(AUTHORITY, PATH, 1)
     }
 
     override fun onCreate(): Boolean = true
-
-    override fun getType(uri: Uri): String = when (uriMatcher.match(uri)) {
-        1    -> "vnd.android.cursor.dir/scans"
-        2    -> "vnd.android.cursor.item/scans"
-        else -> throw IllegalArgumentException("Unknown URI: $uri")
-    }
 
     override fun query(
         uri: Uri,
@@ -37,39 +41,78 @@ class ScanHistoryProvider : ContentProvider() {
         selectionArgs: Array<String>?,
         sortOrder: String?
     ): Cursor {
+
         val scans = runBlocking {
             ScanDatabase.getInstance(context!!).scanDao().getAllScansOnce()
         }
+
         return MatrixCursor(COLUMNS).apply {
+
             scans.forEach { scan ->
-                addRow(arrayOf(scan.id, scan.extensionId, scan.riskScore, scan.riskLevel, scan.timestamp))
+
+                addRow(
+                    arrayOf(
+                        scan.extensionId,
+                        scan.extensionName,
+                        scan.permissions,
+                        scan.riskScore,
+                        scan.riskLevel,
+                        scan.description,
+                        scan.version,
+                        scan.timestamp
+                    )
+                )
             }
         }
     }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
+
         values ?: return null
+
         val entity = ScanEntity(
-            extensionId = values.getAsString("extensionId") ?: "",
-            extensionName = values.getAsString("extensionName") ?: "",
-            riskScore = values.getAsFloat("riskScore") ?: 0f,
-            riskLevel = values.getAsString("riskLevel") ?: "",
-            description = values.getAsString("description") ?: "",
-            version = values.getAsString("version") ?: "",
+            extensionId = values.getAsString("extensionId"),
+            extensionName = values.getAsString("extensionName"),
+            permissions = values.getAsString("permissions") ?: "",
+            riskScore = values.getAsFloat("riskScore"),
+            riskLevel = values.getAsString("riskLevel"),
+            description = values.getAsString("description"),
+            version = values.getAsString("version"),
             timestamp = values.getAsLong("timestamp") ?: System.currentTimeMillis()
         )
-        runBlocking { ScanDatabase.getInstance(context!!).scanDao().insertScan(entity) }
+
+        runBlocking {
+            ScanDatabase.getInstance(context!!).scanDao().insertScan(entity)
+        }
+
         context?.contentResolver?.notifyChange(CONTENT_URI, null)
-        return ContentUris.withAppendedId(CONTENT_URI, entity.id.toLong())
+
+        return CONTENT_URI
     }
 
-    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int {
-        if (uriMatcher.match(uri) != 2) return 0
-        val id = ContentUris.parseId(uri).toInt()
-        runBlocking { ScanDatabase.getInstance(context!!).scanDao().deleteScan(id) }
+    override fun delete(
+        uri: Uri,
+        selection: String?,
+        selectionArgs: Array<String>?
+    ): Int {
+
+        runBlocking {
+            ScanDatabase.getInstance(context!!).scanDao().clearAll()
+        }
+
         context?.contentResolver?.notifyChange(CONTENT_URI, null)
+
         return 1
     }
 
-    override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<String>?): Int = 0
+    override fun update(
+        uri: Uri,
+        values: ContentValues?,
+        selection: String?,
+        selectionArgs: Array<String>?
+    ): Int = 0
+
+    override fun getType(uri: Uri): String {
+        return "vnd.android.cursor.dir/scans"
+    }
 }

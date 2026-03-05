@@ -1,12 +1,15 @@
 package com.example.extsecure.viewmodel
 
 import android.app.Application
+import android.content.ContentValues
+import android.net.Uri
 import androidx.lifecycle.*
 import com.example.extsecure.api.AnalyzeRequest
 import com.example.extsecure.api.AnalyzeResponse
 import com.example.extsecure.api.RetrofitClient
 import com.example.extsecure.database.ScanDatabase
 import com.example.extsecure.database.ScanEntity
+import com.example.extsecure.provider.ScanHistoryProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,26 +50,35 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
+
                 val response = RetrofitClient.apiService
                     .analyzeExtension(AnalyzeRequest(extensionId))
 
-                dao.insertScan(
-                    ScanEntity(
-                        extensionId = response.extensionId,
-                        extensionName = response.extensionName,
-                        riskScore = response.riskScore,
-                        riskLevel = response.riskLevel,
-                        description = response.description,
-                        version = response.version
-                    )
+                val values = ContentValues().apply {
+                    put("extensionId", response.extensionId)
+                    put("extensionName", response.extensionName)
+                    put("permissions", response.permissions?.joinToString(",") ?: "")
+                    put("riskScore", response.riskScore)
+                    put("riskLevel", response.riskLevel)
+                    put("description", response.description)
+                    put("version", response.version)
+                    put("timestamp", System.currentTimeMillis())
+                }
+
+                getApplication<Application>().contentResolver.insert(
+                    ScanHistoryProvider.CONTENT_URI,
+                    values
                 )
 
                 _uiState.value = ScanUiState.Success(response)
 
             } catch (e: Exception) {
+
                 e.printStackTrace()
-                _uiState.value =
-                    ScanUiState.Error(e.localizedMessage ?: "Network error")
+
+                _uiState.value = ScanUiState.Error(
+                    e.message ?: "Failed to analyze extension"
+                )
             }
         }
     }
@@ -77,5 +89,10 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     fun resetState() {
         _uiState.value = ScanUiState.Idle
+    }
+    fun getScanByExtensionId(extensionId: String): LiveData<ScanEntity?> {
+        return liveData {
+            emit(dao.getScanByExtensionId(extensionId))
+        }
     }
 }
