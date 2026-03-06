@@ -128,7 +128,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     fun resetState() {
         _uiState.value = ScanUiState.Idle
-    }Q
+    }
     fun getScanByExtensionId(extensionId: String): LiveData<ScanEntity?> {
         return liveData {
             emit(dao.getScanByExtensionId(extensionId))
