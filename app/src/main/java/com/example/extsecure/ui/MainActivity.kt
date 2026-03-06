@@ -16,17 +16,18 @@ import androidx.compose.runtime.remember
 import androidx.navigation.compose.*
 import com.example.extsecure.broadcast.NetworkUtil
 import com.example.extsecure.ui.screens.DetailScreen
-import com.example.extsecure.ui.screens.HomeScreen
 import com.example.extsecure.ui.screens.HistoryScreen
 import com.example.extsecure.ui.screens.ScanScreen
 import com.example.extsecure.ui.theme.ExtSecureTheme
 import com.example.extsecure.viewmodel.ScanViewModel
-
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 class MainActivity : ComponentActivity() {
 
     private val viewModel: ScanViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 

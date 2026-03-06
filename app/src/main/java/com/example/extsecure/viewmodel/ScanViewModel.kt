@@ -16,12 +16,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import android.util.Log
 import org.json.JSONObject
-
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 // ── UI state ──────────────────────────────────────────────────────────────────
+data class BatchScanResult(
+    val extensionId: String,
+    val response: AnalyzeResponse? = null,
+    val error: String? = null
+)
 sealed interface ScanUiState {
     data object Idle    : ScanUiState
     data object Loading : ScanUiState
-    data class  Success(val response: AnalyzeResponse) : ScanUiState
+    data class Success(val responses: List<BatchScanResult>) : ScanUiState
+
     data class  Error(val message: String)             : ScanUiState
 }
 
@@ -41,87 +48,6 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         _isNetworkAvailable.value = isConnected
     }
 
-    fun analyzeExtension(extensionId: String) {
-
-        if (extensionId.isBlank()) {
-            _uiState.value = ScanUiState.Error("Extension ID cannot be empty")
-            return
-        }
-
-        _uiState.value = ScanUiState.Loading
-
-        viewModelScope.launch {
-
-            try {
-
-                val response = RetrofitClient.apiService
-                    .analyzeExtension(AnalyzeRequest(extensionId))
-
-                if (response.isSuccessful) {
-
-                    val body = response.body()
-
-                    if (body != null) {
-
-                        val values = ContentValues().apply {
-                            put("extensionId", body.extensionId)
-                            put("extensionName", body.extensionName)
-                            put("permissions", body.permissions?.joinToString(",")?:"")
-                            put("riskScore", body.riskScore)
-                            put("riskLevel", body.riskLevel)
-                            put("description", body.description)
-                            put("version", body.version)
-                            put("timestamp", System.currentTimeMillis())
-                        }
-
-                        getApplication<Application>().contentResolver.insert(
-                            ScanHistoryProvider.CONTENT_URI,
-                            values
-                        )
-
-                        _uiState.value = ScanUiState.Success(body)
-
-                    } else {
-                        _uiState.value = ScanUiState.Error("Empty response from server")
-                    }
-
-                } else {
-
-                    val errorBody = response.errorBody()?.string()
-
-                    val message = try {
-
-                        if (!errorBody.isNullOrEmpty()) {
-                            val json = JSONObject(errorBody)
-
-                            when {
-                                json.has("error") -> json.getString("error")
-                                json.has("detail") -> json.getString("detail")
-                                else -> "Extension not found"
-                            }
-
-                        } else {
-                            "Extension not found in Chrome Web Store"
-                        }
-
-                    } catch (e: Exception) {
-                        "Extension not found in Chrome Web Store"
-                    }
-
-                    _uiState.value = ScanUiState.Error(message)
-                }
-
-            } catch (e: Exception) {
-
-                Log.e("EXTSECURE_API", "API ERROR", e)
-
-                _uiState.value = ScanUiState.Error(
-                    e.localizedMessage ?: "Network error"
-                )
-            }
-        }
-    }
-
     fun clearHistory() {
         viewModelScope.launch(Dispatchers.IO) { dao.clearAll() }
     }
@@ -132,6 +58,100 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     fun getScanByExtensionId(extensionId: String): LiveData<ScanEntity?> {
         return liveData {
             emit(dao.getScanByExtensionId(extensionId))
+        }
+    }
+    fun analyzeExtensionsBatch(extensionIds: List<String>) {
+
+        if (extensionIds.isEmpty()) {
+            _uiState.value = ScanUiState.Error("No extension IDs provided")
+            return
+        }
+
+        _uiState.value = ScanUiState.Loading
+
+        viewModelScope.launch {
+
+            try {
+
+                val results = extensionIds.map { id ->
+
+                    async(Dispatchers.IO) {
+
+                        try {
+
+                            val response = RetrofitClient.apiService
+                                .analyzeExtension(AnalyzeRequest(id))
+
+                            if (response.isSuccessful) {
+
+                                val body = response.body()
+
+                                if (body != null) {
+
+                                    val values = ContentValues().apply {
+                                        put("extensionId", body.extensionId)
+                                        put("extensionName", body.extensionName)
+                                        put("permissions", body.permissions?.joinToString(",") ?: "")
+                                        put("riskScore", body.riskScore)
+                                        put("riskLevel", body.riskLevel)
+                                        put("description", body.description)
+                                        put("version", body.version)
+                                        put("timestamp", System.currentTimeMillis())
+                                    }
+
+                                    getApplication<Application>().contentResolver.insert(
+                                        ScanHistoryProvider.CONTENT_URI,
+                                        values
+                                    )
+
+                                    BatchScanResult(
+                                        extensionId = id,
+                                        response = body
+                                    )
+
+                                } else {
+                                    BatchScanResult(
+                                        extensionId = id,
+                                        error = "Empty response"
+                                    )
+                                }
+
+                            } else {
+
+                                val errorBody = response.errorBody()?.string()
+
+                                val message = try {
+                                    val json = JSONObject(errorBody ?: "")
+                                    json.optString("detail", "Extension not found")
+                                } catch (e: Exception) {
+                                    "Extension not found"
+                                }
+
+                                BatchScanResult(
+                                    extensionId = id,
+                                    error = message
+                                )
+                            }
+
+                        } catch (e: Exception) {
+
+                            BatchScanResult(
+                                extensionId = id,
+                                error = e.localizedMessage ?: "Network error"
+                            )
+                        }
+                    }
+
+                }.awaitAll()
+
+                _uiState.value = ScanUiState.Success(results)
+
+            } catch (e: Exception) {
+
+                _uiState.value = ScanUiState.Error(
+                    e.localizedMessage ?: "Batch scan failed"
+                )
+            }
         }
     }
 }

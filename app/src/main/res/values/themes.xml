@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.ExtSecure.Splash" parent="Theme.SplashScreen">
 
+        <!-- Background -->
+        <item name="windowSplashScreenBackground">#0E0F12</item>
+
+        <!-- Your logo -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/extsecure_logo</item>
+
+        <!-- Animation time -->
+        <item name="windowSplashScreenAnimationDuration">300</item>
+
+        <!-- App theme after splash -->
+        <item name="postSplashScreenTheme">@style/Theme.ExtSecure</item>
+
+    </style>
     <style name="Theme.ExtSecure" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

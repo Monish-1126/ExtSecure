@@ -107,17 +107,44 @@ fun ScanScreen(
                 OutlinedTextField(
                     value = extensionId,
                     onValueChange = { extensionId = it },
-                    label = { Text("Extension ID") },
-                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Extension IDs") },
+                    placeholder = {
+                        Text(
+                            "Paste one extension ID per line\nExample:\nkbfnbcaeplbcioakkpcpgfkobkghlhen\neimadpbcbfnmbkopoojfekhnkhdbieeh",
+                            fontSize = 12.sp
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp),   // bigger input area
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp
+                    ),
+                    maxLines = 10,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AccentPurple,
                         unfocusedBorderColor = Color.Gray
                     )
                 )
+                val ids = extensionId
+                    .split("\n")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
 
+                Text(
+                    text = "${ids.size} extension(s) ready to scan",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
                 Button(
                     onClick = {
-                        scanViewModel.analyzeExtension(extensionId.trim())
+                        val ids = extensionId
+                            .split("\n")
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() }
+
+                        scanViewModel.analyzeExtensionsBatch(ids)
                     },
                     enabled = isNetworkAvailable,
                     modifier = Modifier.fillMaxWidth(),
@@ -131,68 +158,123 @@ fun ScanScreen(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Text("Analyze Extension")
+                    Text("Analyze ${ids.size} Extension(s)")
                 }
             }
         }
             }
+        item {
+            Text(
+                text = "Scan Results",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            if (uiState is ScanUiState.Success) {
 
+                val results = (uiState as ScanUiState.Success).responses
+
+                val successCount = results.count { it.response != null }
+                val failCount = results.count { it.error != null }
+
+                Text(
+                    text = "Results: $successCount success • $failCount failed",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
+        }
         // RESULT CARD
         item {
 
+
             if (uiState is ScanUiState.Success) {
 
-                val result = (uiState as ScanUiState.Success).response
-                val riskColor = riskColor(result.riskLevel)
+                val results = (uiState as ScanUiState.Success).responses
 
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = CardBg),
-                    shape = RoundedCornerShape(22.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                results.forEach { result ->
 
-                    Column(
-                        modifier = Modifier.padding(22.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
+                    if (result.response != null) {
 
-                        Text(
-                            result.extensionName,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        val extension = result.response
+                        val riskColor = riskColor(extension.riskLevel)
 
-                        Text(
-                            "Version ${result.version}",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = CardBg),
+                            shape = RoundedCornerShape(22.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
 
-                        Text(
-                            result.description,
-                            fontSize = 13.sp,
-                            color = Color.LightGray
-                        )
+                            Column(
+                                modifier = Modifier.padding(22.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
 
-                        Divider(color = Color.DarkGray)
+                                Text(
+                                    extension.extensionName,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
 
-                        Text("Risk Score", color = Color.Gray)
+                                Text(
+                                    "Version ${extension.version}",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    extension.description,
+                                    fontSize = 13.sp,
+                                    color = Color.LightGray
+                                )
 
-                            Text(
-                                text = "${(result.riskScore * 100).toInt()}%",
-                                fontSize = 36.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = riskColor
-                            )
+                                Divider(color = Color.DarkGray)
 
-                            Spacer(modifier = Modifier.width(16.dp))
+                                Text("Risk Score", color = Color.Gray)
 
-                            RiskBadge(level = result.riskLevel)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+
+                                    Text(
+                                        text = "${(extension.riskScore * 100).toInt()}%",
+                                        fontSize = 36.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = riskColor
+                                    )
+
+                                    Spacer(modifier = Modifier.width(16.dp))
+
+                                    RiskBadge(level = extension.riskLevel)
+                                }
+                            }
+                        }
+
+                    } else {
+
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1A1A)),
+                            shape = RoundedCornerShape(22.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+
+                                Text(
+                                    text = "Extension ID: ${result.extensionId}",
+                                    color = Color.Gray
+                                )
+
+                                Text(
+                                    text = result.error ?: "Unknown error",
+                                    color = Color.Red
+                                )
+                            }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
