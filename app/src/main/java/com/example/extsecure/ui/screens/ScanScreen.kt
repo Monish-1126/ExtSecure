@@ -204,6 +204,19 @@ fun ScanScreen(
                     color = AccentPurple
                 )
             }
+            if (uiState is ScanUiState.Error) {
+                val message = (uiState as ScanUiState.Error).message
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1A1A))
+                ) {
+                    Text(
+                        text = message,
+                        color = Color.Red,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
         }
     }
 }

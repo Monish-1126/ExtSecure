@@ -14,6 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import android.util.Log
+import org.json.JSONObject
 
 // ── UI state ──────────────────────────────────────────────────────────────────
 sealed interface ScanUiState {
@@ -48,36 +50,73 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
         _uiState.value = ScanUiState.Loading
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
+
             try {
 
                 val response = RetrofitClient.apiService
                     .analyzeExtension(AnalyzeRequest(extensionId))
 
-                val values = ContentValues().apply {
-                    put("extensionId", response.extensionId)
-                    put("extensionName", response.extensionName)
-                    put("permissions", response.permissions?.joinToString(",") ?: "")
-                    put("riskScore", response.riskScore)
-                    put("riskLevel", response.riskLevel)
-                    put("description", response.description)
-                    put("version", response.version)
-                    put("timestamp", System.currentTimeMillis())
+                if (response.isSuccessful) {
+
+                    val body = response.body()
+
+                    if (body != null) {
+
+                        val values = ContentValues().apply {
+                            put("extensionId", body.extensionId)
+                            put("extensionName", body.extensionName)
+                            put("permissions", body.permissions?.joinToString(",")?:"")
+                            put("riskScore", body.riskScore)
+                            put("riskLevel", body.riskLevel)
+                            put("description", body.description)
+                            put("version", body.version)
+                            put("timestamp", System.currentTimeMillis())
+                        }
+
+                        getApplication<Application>().contentResolver.insert(
+                            ScanHistoryProvider.CONTENT_URI,
+                            values
+                        )
+
+                        _uiState.value = ScanUiState.Success(body)
+
+                    } else {
+                        _uiState.value = ScanUiState.Error("Empty response from server")
+                    }
+
+                } else {
+
+                    val errorBody = response.errorBody()?.string()
+
+                    val message = try {
+
+                        if (!errorBody.isNullOrEmpty()) {
+                            val json = JSONObject(errorBody)
+
+                            when {
+                                json.has("error") -> json.getString("error")
+                                json.has("detail") -> json.getString("detail")
+                                else -> "Extension not found"
+                            }
+
+                        } else {
+                            "Extension not found in Chrome Web Store"
+                        }
+
+                    } catch (e: Exception) {
+                        "Extension not found in Chrome Web Store"
+                    }
+
+                    _uiState.value = ScanUiState.Error(message)
                 }
-
-                getApplication<Application>().contentResolver.insert(
-                    ScanHistoryProvider.CONTENT_URI,
-                    values
-                )
-
-                _uiState.value = ScanUiState.Success(response)
 
             } catch (e: Exception) {
 
-                e.printStackTrace()
+                Log.e("EXTSECURE_API", "API ERROR", e)
 
                 _uiState.value = ScanUiState.Error(
-                    e.message ?: "Failed to analyze extension"
+                    e.localizedMessage ?: "Network error"
                 )
             }
         }
@@ -89,7 +128,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     fun resetState() {
         _uiState.value = ScanUiState.Idle
-    }
+    }Q
     fun getScanByExtensionId(extensionId: String): LiveData<ScanEntity?> {
         return liveData {
             emit(dao.getScanByExtensionId(extensionId))
