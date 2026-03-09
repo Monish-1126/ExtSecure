@@ -6,6 +6,7 @@ import android.database.MatrixCursor
 import android.net.Uri
 import com.example.extsecure.database.ScanDatabase
 import com.example.extsecure.database.ScanEntity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
 class ScanHistoryProvider : ContentProvider() {
@@ -42,7 +43,7 @@ class ScanHistoryProvider : ContentProvider() {
         sortOrder: String?
     ): Cursor {
 
-        val scans = runBlocking {
+        val scans = runBlocking(Dispatchers.IO) {
             ScanDatabase.getInstance(context!!).scanDao().getAllScansOnce()
         }
 
@@ -51,7 +52,7 @@ class ScanHistoryProvider : ContentProvider() {
             scans.forEach { scan ->
 
                 addRow(
-                    arrayOf(
+                    arrayOf<Any>(
                         scan.extensionId,
                         scan.extensionName,
                         scan.permissions,
@@ -81,7 +82,7 @@ class ScanHistoryProvider : ContentProvider() {
             timestamp = values.getAsLong("timestamp") ?: System.currentTimeMillis()
         )
 
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             ScanDatabase.getInstance(context!!).scanDao().insertScan(entity)
         }
 
@@ -96,7 +97,7 @@ class ScanHistoryProvider : ContentProvider() {
         selectionArgs: Array<String>?
     ): Int {
 
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             ScanDatabase.getInstance(context!!).scanDao().clearAll()
         }
 

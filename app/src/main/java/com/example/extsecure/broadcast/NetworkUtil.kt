@@ -3,11 +3,14 @@ package com.example.extsecure.broadcast
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.NetworkCapabilities
 
 object NetworkUtil {
 
-    fun observeNetwork(context: Context, onChange: (Boolean) -> Unit) {
+    /**
+     * Registers a default network callback and returns a cleanup lambda
+     * that unregisters it. Call the returned lambda in onDestroy().
+     */
+    fun observeNetwork(context: Context, onChange: (Boolean) -> Unit): () -> Unit {
 
         val cm =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -24,5 +27,7 @@ object NetworkUtil {
         }
 
         cm.registerDefaultNetworkCallback(callback)
+
+        return { cm.unregisterNetworkCallback(callback) }
     }
 }

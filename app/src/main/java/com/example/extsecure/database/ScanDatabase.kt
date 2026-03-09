@@ -19,7 +19,8 @@ abstract class ScanDatabase : RoomDatabase() {
                     context.applicationContext,
                     ScanDatabase::class.java,
                     "scan_database"
-                ).build().also { INSTANCE = it }
+                ).fallbackToDestructiveMigration()
+                 .build().also { INSTANCE = it }
             }
     }
 }

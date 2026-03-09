@@ -3,6 +3,7 @@ package com.example.extsecure.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,16 +18,16 @@ fun RiskBadge(level: String, modifier: Modifier = Modifier) {
     val color = riskColor(level)
     Text(
         text = level,
-        color = Color.White,
+        color = color,
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         modifier = modifier
-            .background(color.copy(alpha = 0.20f), RoundedCornerShape(4.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .background(color.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
     )
 }
 
-fun riskColor(level: String): Color = when (level) {
+fun riskColor(level: String): Color = when (level.uppercase()) {
     "CRITICAL" -> RiskCritical
     "HIGH"     -> RiskHigh
     "MEDIUM"   -> RiskMedium

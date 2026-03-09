@@ -1,5 +1,6 @@
 package com.example.extsecure.api
 
+import com.example.extsecure.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -8,18 +9,20 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    // 🔧 Replace with your FastAPI server address
     private const val BASE_URL = "https://extsecure-api.onrender.com"
 
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder().apply {
+            connectTimeout(120, TimeUnit.SECONDS)
+            readTimeout(120, TimeUnit.SECONDS)
+            writeTimeout(120, TimeUnit.SECONDS)
+            if (BuildConfig.DEBUG) {
+                addInterceptor(HttpLoggingInterceptor().apply {
+                    level = HttpLoggingInterceptor.Level.BODY
+                })
+            }
+        }.build()
     }
-
-    private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(120, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
-        .writeTimeout(120, TimeUnit.SECONDS)
-        .build()
 
     val apiService: ApiService by lazy {
         Retrofit.Builder()

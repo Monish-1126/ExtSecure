@@ -1,38 +1,35 @@
 package com.example.extsecure.ui.screens
 
+import android.content.Intent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Text
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.extsecure.api.AnalyzeResponse
 import com.example.extsecure.ui.components.RiskBadge
 import com.example.extsecure.ui.components.riskColor
 import com.example.extsecure.viewmodel.ScanViewModel
-import com.example.extsecure.viewmodel.ScanUiState
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PremiumResultCard(response: AnalyzeResponse) {
-
     val color = riskColor(response.riskLevel)
+    val colors = MaterialTheme.colorScheme
 
     val animatedProgress by animateFloatAsState(
         targetValue = response.riskScore,
@@ -41,9 +38,7 @@ fun PremiumResultCard(response: AnalyzeResponse) {
 
     Card(
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1A1C22)
-        ),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
         elevation = CardDefaults.cardElevation(12.dp)
     ) {
         Column(
@@ -52,32 +47,27 @@ fun PremiumResultCard(response: AnalyzeResponse) {
                 .padding(28.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-
             // ───────── Extension Info ─────────
             Column {
                 Text(
                     text = response.extensionName,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.onSurface
                 )
-
                 Text(
                     text = "v${response.version}",
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
                 )
-
                 Spacer(Modifier.height(6.dp))
-
                 Text(
                     text = response.description,
-                    fontSize = 13.sp,
-                    color = Color(0xFFBDBDBD)
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurface.copy(alpha = 0.8f)
                 )
             }
 
-            Divider(color = Color.DarkGray)
+            HorizontalDivider(color = colors.outline.copy(alpha = 0.3f))
 
             // ───────── Risk Meter ─────────
             Box(
@@ -87,86 +77,145 @@ fun PremiumResultCard(response: AnalyzeResponse) {
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    progress = animatedProgress,
+                    progress = { animatedProgress },
                     strokeWidth = 10.dp,
                     color = color,
+                    trackColor = colors.surfaceVariant,
                     modifier = Modifier.size(120.dp)
                 )
-
                 Text(
                     text = "${(response.riskScore * 100).toInt()}%",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 28.sp),
                     color = color
                 )
             }
 
-            RiskBadge(level = response.riskLevel)
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                RiskBadge(level = response.riskLevel)
+            }
 
-            Divider(color = Color.DarkGray)
+            HorizontalDivider(color = colors.outline.copy(alpha = 0.3f))
 
             // ───────── Permissions ─────────
             Text(
-                text = "Permissions",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White
+                text = "Permissions (${response.permissions?.size ?: 0})",
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.onSurface
             )
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                (response.permissions ?: emptyList()).forEach { permission ->
-                    AssistChip(
-                        onClick = {},
-                        label = { Text(permission, fontSize = 11.sp) },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = Color(0xFF2A2D36),
-                            labelColor = Color.LightGray
+            if (response.permissions.isNullOrEmpty()) {
+                Text(
+                    text = "No permissions requested",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    response.permissions.forEach { permission ->
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(permission, fontSize = 11.sp) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = colors.surfaceVariant,
+                                labelColor = colors.onSurface
+                            )
                         )
-                    )
+                    }
                 }
             }
 
-            // Optional subtle ID display
+            // Subtle ID display
             Text(
                 text = response.extensionId,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
-                color = Color.DarkGray
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
     }
 }
+
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun DetailScreen(
     extensionId: String,
-    viewModel: ScanViewModel
+    viewModel: ScanViewModel,
+    navController: NavController
 ) {
+    val scanLiveData = remember(extensionId) { viewModel.getScanByExtensionId(extensionId) }
+    val scan by scanLiveData.observeAsState()
+    val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
 
-    val scan by viewModel.getScanByExtensionId(extensionId).observeAsState()
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0E0F12))
-            .padding(24.dp)
+            .background(colors.background)
     ) {
-
-        scan?.let {
-
-            PremiumResultCard(
-                AnalyzeResponse(
-                    extensionId = it.extensionId,
-                    extensionName = it.extensionName,
-                    description = it.description,
-                    version = it.version,
-                    permissions = it.permissions.split(",").filter { p -> p.isNotBlank() },
-                    riskScore = it.riskScore,
-                    riskLevel = it.riskLevel
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp)
+        ) {
+            scan?.let { scanEntity ->
+                val response = AnalyzeResponse(
+                    extensionId = scanEntity.extensionId,
+                    extensionName = scanEntity.extensionName,
+                    description = scanEntity.description,
+                    version = scanEntity.version,
+                    permissions = scanEntity.permissions.split(",").filter { p -> p.isNotBlank() },
+                    riskScore = scanEntity.riskScore,
+                    riskLevel = scanEntity.riskLevel
                 )
-            )
 
-        } ?: Text("Loading...", color = Color.Gray)
+                PremiumResultCard(response)
+
+            } ?: Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = colors.primary)
+            }
+        }
+
+        // ── SHARE FAB ──
+        scan?.let { scanEntity ->
+            FloatingActionButton(
+                onClick = {
+                    val shareText = buildString {
+                        appendLine("🛡 ExtSecure Scan Report")
+                        appendLine("━━━━━━━━━━━━━━━━━━━━━━")
+                        appendLine("Extension: ${scanEntity.extensionName}")
+                        appendLine("Version: ${scanEntity.version}")
+                        appendLine("Risk Level: ${scanEntity.riskLevel}")
+                        appendLine("Risk Score: ${(scanEntity.riskScore * 100).toInt()}%")
+                        appendLine()
+                        appendLine("Permissions: ${scanEntity.permissions.ifBlank { "None" }}")
+                        appendLine()
+                        appendLine("Extension ID: ${scanEntity.extensionId}")
+                        appendLine("Chrome Web Store: https://chromewebstore.google.com/detail/-/${scanEntity.extensionId}")
+                    }
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "ExtSecure: ${scanEntity.extensionName}")
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Share scan report"))
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp),
+                containerColor = colors.primary,
+                contentColor = colors.onPrimary
+            ) {
+                Icon(Icons.Default.Share, contentDescription = "Share")
+            }
+        }
     }
 }

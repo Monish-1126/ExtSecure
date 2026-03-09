@@ -2,13 +2,20 @@ package com.example.extsecure.database
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ScanDao {
 
+    /** LiveData-based reactive query (used by existing screens). */
     @Query("SELECT * FROM scan_history ORDER BY timestamp DESC")
     fun getAllScans(): LiveData<List<ScanEntity>>
 
+    /** Flow-based reactive query (coroutines). */
+    @Query("SELECT * FROM scan_history ORDER BY timestamp DESC")
+    fun getAllScansFlow(): Flow<List<ScanEntity>>
+
+    /** One-shot coroutine query (used by Content Provider). */
     @Query("SELECT * FROM scan_history ORDER BY timestamp DESC")
     suspend fun getAllScansOnce(): List<ScanEntity>
 
