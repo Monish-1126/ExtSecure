@@ -68,11 +68,6 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             repository.clearHistoryViaProvider()
         }
     }
-
-    fun resetState() {
-        _uiState.value = ScanUiState.Idle
-    }
-
     // ── Detail lookup via Repository (coroutine) ──
     fun getScanByExtensionId(extensionId: String): LiveData<ScanEntity?> {
         return liveData(Dispatchers.IO) {
