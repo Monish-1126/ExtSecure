@@ -19,13 +19,14 @@ import org.json.JSONObject
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 
-// ── UI state ──────────────────────────────────────────────────────────────────
+// Result for one extension scan
 data class BatchScanResult(
     val extensionId: String,
     val response: AnalyzeResponse? = null,
     val error: String? = null
 )
 
+// UI state for scan screen
 sealed interface ScanUiState {
     data object Idle : ScanUiState
     data object Loading : ScanUiState
@@ -35,47 +36,37 @@ sealed interface ScanUiState {
 
 class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
-    // ── Repository (Content Provider + Web API + Coroutines) ──
     private val repository = ScanRepository(application.applicationContext)
-
-    // ── Room DAO (for LiveData compatibility) ──
     private val dao = ScanDatabase.getInstance(application).scanDao()
 
-    // ── Scan UI state (StateFlow — coroutines) ──
     private val _uiState = MutableStateFlow<ScanUiState>(ScanUiState.Idle)
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
 
-    // ── Network status (updated by BroadcastReceiver) ──
     private val _isNetworkAvailable = MutableStateFlow(true)
     val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
 
-    // ── Scan history via LiveData (for observeAsState in existing screens) ──
-    val scanHistory: LiveData<List<ScanEntity>> = dao.getAllScans()
-
-    // ── Scan history via Flow → StateFlow (Coroutines — collected in Compose) ──
+    // Scan history as reactive Flow backed by ContentProvider notifications
     val scanHistoryFlow: StateFlow<List<ScanEntity>> =
         repository.observeScansViaProvider()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // ── Called by BroadcastReceiver from MainActivity ──
     fun updateNetworkStatus(isConnected: Boolean) {
         _isNetworkAvailable.value = isConnected
     }
 
-    // ── Clear history via Content Provider (coroutine) ──
     fun clearHistory() {
         viewModelScope.launch(Dispatchers.IO) {
             repository.clearHistoryViaProvider()
         }
     }
-    // ── Detail lookup via Repository (coroutine) ──
+
     fun getScanByExtensionId(extensionId: String): LiveData<ScanEntity?> {
         return liveData(Dispatchers.IO) {
             emit(repository.getScanByExtensionId(extensionId))
         }
     }
 
-    // ── Batch analyze: Web API + Content Provider insert + Coroutines ──
+    // Analyze multiple extensions in parallel via API, save via ContentProvider
     fun analyzeExtensionsBatch(extensionIds: List<String>) {
 
         if (extensionIds.isEmpty()) {

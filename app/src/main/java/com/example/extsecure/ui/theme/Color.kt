@@ -21,7 +21,3 @@ val RiskMedium = Color(0xFFF59E0B)
 val RiskHigh = Color(0xFFEF4444)
 val RiskCritical = Color(0xFFB91C1C)
 
-// ── Semantic ──
-val ErrorBgDark = Color(0xFF2A1A1A)
-val ErrorBgLight = Color(0xFFFDE8E8)
-val NetworkWarningBg = Color(0xFF3B0D0D)

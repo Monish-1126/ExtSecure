@@ -143,7 +143,7 @@ fun SettingsScreen(
             title = "API Endpoint",
             subtitle = "extsecure-api.onrender.com",
             onClick = {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://extsecure-api.onrender.com/docs"))
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://extsecure-api.onrender.com"))
                 context.startActivity(intent)
             }
         )

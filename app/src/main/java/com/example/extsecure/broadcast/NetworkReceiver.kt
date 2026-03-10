@@ -22,9 +22,6 @@ class NetworkReceiver(
     }
 
     companion object {
-        /**
-         * Checks current connectivity status using NetworkCapabilities API.
-         */
         fun checkConnectivity(context: Context): Boolean {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = cm.activeNetwork ?: return false

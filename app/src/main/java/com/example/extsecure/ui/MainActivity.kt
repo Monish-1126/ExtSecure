@@ -11,7 +11,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -35,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.*
 import com.example.extsecure.broadcast.NetworkReceiver
-import com.example.extsecure.broadcast.NetworkUtil
 import com.example.extsecure.ui.screens.DetailScreen
 import com.example.extsecure.ui.screens.HistoryScreen
 import com.example.extsecure.ui.screens.ScanScreen
@@ -47,9 +45,8 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 class MainActivity : ComponentActivity() {
 
     private val viewModel: ScanViewModel by viewModels()
-    private var unregisterNetwork: (() -> Unit)? = null
 
-    // ── BroadcastReceiver instance ──
+    // BroadcastReceiver instance used as the single source of network updates.
     private var networkReceiver: NetworkReceiver? = null
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -58,12 +55,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // ── Register NetworkCallback (existing approach) ──
-        unregisterNetwork = NetworkUtil.observeNetwork(this) { connected ->
-            viewModel.updateNetworkStatus(connected)
-        }
-
-        // ── Register BroadcastReceiver for CONNECTIVITY_ACTION ──
+        // Register BroadcastReceiver for connectivity changes.
         networkReceiver = NetworkReceiver { isConnected ->
             viewModel.updateNetworkStatus(isConnected)
         }
@@ -73,7 +65,7 @@ class MainActivity : ComponentActivity() {
             IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         )
 
-        // Set initial network status
+        // Set initial network status on app launch.
         viewModel.updateNetworkStatus(NetworkReceiver.checkConnectivity(this))
 
         setContent {
@@ -241,14 +233,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // ── Unregister NetworkCallback ──
-        unregisterNetwork?.invoke()
-        // ── Unregister BroadcastReceiver ──
+        // Unregister BroadcastReceiver to avoid leaks.
         networkReceiver?.let {
             try {
                 unregisterReceiver(it)
             } catch (_: IllegalArgumentException) {
-                // Already unregistered
+                // Already unregistered.
             }
         }
         networkReceiver = null

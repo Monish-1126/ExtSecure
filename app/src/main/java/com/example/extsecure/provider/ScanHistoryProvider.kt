@@ -14,9 +14,7 @@ class ScanHistoryProvider : ContentProvider() {
     companion object {
         const val AUTHORITY = "com.example.extsecure.provider"
         const val PATH = "scans"
-
         val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY/$PATH")
-
         val COLUMNS = arrayOf(
             "extensionId",
             "extensionName",
@@ -29,12 +27,9 @@ class ScanHistoryProvider : ContentProvider() {
         )
     }
 
-    private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
-        addURI(AUTHORITY, PATH, 1)
-    }
-
     override fun onCreate(): Boolean = true
 
+    // Query all scans from Room database and return as cursor.
     override fun query(
         uri: Uri,
         projection: Array<String>?,
@@ -67,6 +62,7 @@ class ScanHistoryProvider : ContentProvider() {
         }
     }
 
+    // Insert a scan result into Room database and notify observers.
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
 
         values ?: return null
@@ -91,6 +87,7 @@ class ScanHistoryProvider : ContentProvider() {
         return CONTENT_URI
     }
 
+    // Delete all scans from database and notify observers.
     override fun delete(
         uri: Uri,
         selection: String?,

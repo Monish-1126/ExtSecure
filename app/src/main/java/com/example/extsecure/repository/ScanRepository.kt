@@ -6,9 +6,7 @@ import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import com.example.extsecure.api.AnalyzeRequest
 import com.example.extsecure.api.AnalyzeResponse
-import com.example.extsecure.api.RetrofitClient
 import com.example.extsecure.database.ScanDatabase
 import com.example.extsecure.database.ScanEntity
 import com.example.extsecure.provider.ScanHistoryProvider
@@ -19,36 +17,13 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 
 /**
- * Repository that ties together:
- *  - Web API calls via Retrofit (suspend / coroutines)
- *  - Content Provider for insert / query / delete via ContentResolver
- *  - Room DAO for Flow-based reactive queries
+ * Repository layer coordinating Web API, ContentProvider, and Room database.
  */
 class ScanRepository(private val context: Context) {
 
     private val dao = ScanDatabase.getInstance(context).scanDao()
 
-    // ───────────────────────────────────────────────────────
-    //  WEB API  —  Retrofit + Coroutines
-    // ───────────────────────────────────────────────────────
-
-    /** Call the remote API inside an IO coroutine. */
-    suspend fun analyzeExtension(extensionId: String): AnalyzeResponse {
-        return withContext(Dispatchers.IO) {
-            val response = RetrofitClient.apiService.analyzeExtension(AnalyzeRequest(extensionId))
-            if (response.isSuccessful && response.body() != null) {
-                response.body()!!
-            } else {
-                throw Exception(response.errorBody()?.string() ?: "Analysis failed")
-            }
-        }
-    }
-
-    // ───────────────────────────────────────────────────────
-    //  CONTENT PROVIDER  —  Insert via ContentResolver
-    // ───────────────────────────────────────────────────────
-
-    /** Save a scan result through the Content Provider. */
+    // Save scan result through ContentProvider to database.
     suspend fun saveScanViaProvider(body: AnalyzeResponse) {
         withContext(Dispatchers.IO) {
             val values = ContentValues().apply {
@@ -65,11 +40,7 @@ class ScanRepository(private val context: Context) {
         }
     }
 
-    // ───────────────────────────────────────────────────────
-    //  CONTENT PROVIDER  —  Query via ContentResolver
-    // ───────────────────────────────────────────────────────
-
-    /** Read all scans through the Content Provider (one-shot). */
+    // Query all scans through ContentProvider (one-shot).
     suspend fun getScansViaProvider(): List<ScanEntity> {
         return withContext(Dispatchers.IO) {
             val scans = mutableListOf<ScanEntity>()
@@ -97,26 +68,14 @@ class ScanRepository(private val context: Context) {
         }
     }
 
-    // ───────────────────────────────────────────────────────
-    //  CONTENT PROVIDER  —  Delete via ContentResolver
-    // ───────────────────────────────────────────────────────
-
-    /** Clear all scan history through the Content Provider. */
+    // Clear all scan history through ContentProvider.
     suspend fun clearHistoryViaProvider() {
         withContext(Dispatchers.IO) {
             context.contentResolver.delete(ScanHistoryProvider.CONTENT_URI, null, null)
         }
     }
 
-    // ───────────────────────────────────────────────────────
-    //  CONTENT PROVIDER  —  Observe changes as a Flow
-    // ───────────────────────────────────────────────────────
-
-    /**
-     * Returns a Flow that emits the latest scan list every time
-     * the Content Provider's URI is notified of a change.
-     * Combines ContentObserver with Kotlin coroutine callbackFlow.
-     */
+    // Observe scan changes via ContentProvider notifications as a Flow.
     fun observeScansViaProvider(): Flow<List<ScanEntity>> = callbackFlow {
         // Emit initial data
         trySend(getScansViaProviderSync())
@@ -168,10 +127,7 @@ class ScanRepository(private val context: Context) {
         return scans
     }
 
-    // ───────────────────────────────────────────────────────
-    //  ROOM DAO  —  Direct access (for detail screen etc.)
-    // ───────────────────────────────────────────────────────
-
+    // Fetch one scan by ID directly from Room.
     suspend fun getScanByExtensionId(extensionId: String): ScanEntity? {
         return withContext(Dispatchers.IO) {
             dao.getScanByExtensionId(extensionId)
