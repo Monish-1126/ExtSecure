@@ -4,17 +4,17 @@ ExtSecure is an Android application that analyzes Google Chrome extensions and p
 
 ## Features
 
-- 🔍 Analyze Chrome extensions using their Extension ID
-- 🤖 Machine Learning based risk prediction
-- 📊 Risk score and risk level classification
-- 📄 Displays extension information
+- 🔍 Analyze Chrome extensions using their Extension ID.
+- 🤖 Machine Learning based risk prediction.
+- 📊 Risk score and risk level classification.
+- 📄 Displays extension information.
   - Name
   - Description
   - Version
   - Permissions
-- 📚 Scan history
-- 🌐 FastAPI backend deployed on Render
-- 📱 Clean Android interface built with Kotlin
+- 📚 Scan history.
+- 🌐 FastAPI backend deployed on Render.
+- 📱 Clean Android interface built with Kotlin.
 
 ---
 
