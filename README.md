@@ -1,4 +1,5 @@
 # 🛡️ ExtSecure
+![Kotlin](https://img.shields.io/badge/Kotlin-2.0-purple) ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green) ![XGBoost](https://img.shields.io/badge/ML-XGBoost-blue) ![Render](https://img.shields.io/badge/Hosted%20on-Render-46E3B7) 
 
 ExtSecure is an Android application that analyzes Google Chrome extensions and predicts whether they are potentially malicious using a Machine Learning model. The app provides users with a simple way to evaluate browser extensions by analyzing their permissions and metadata before installation.
 
