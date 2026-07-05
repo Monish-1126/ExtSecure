@@ -168,7 +168,7 @@ Analysis Result
 
 ## Author
 
-**Monish**
+**Monish Pothani**
 
 GitHub: https://github.com/Monish-1126
 
